@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Data Structures - Algorithm & Data Structure Reference{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h2">
+            <i class="fas fa-database me-2"></i>Data Structures
+        </h1>
+        <p class="text-muted">Comprehensive collection of data structures with implementations</p>
+    </div>
+</div>
+
+<!-- Filter by Category -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" placeholder="Search data structures...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category-filter" class="form-label">Filter by Category</label>
+                        <select class="form-select" id="category-filter">
+                            <option value="all">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="filterStructures()">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Structures Grid -->
+<div class="row" id="structures-container">
+    {% for structure in structures %}
+        <div class="col-lg-6 mb-4 structure-card" data-category="{{ structure.category }}" data-name="{{ structure.name.lower() }}">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ structure.name }}</h5>
+                    <span class="badge bg-primary">{{ structure.category }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ structure.description }}</p>
+                    
+                    <!-- Complexity Information -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Time Complexity:</small>
+                            <ul class="list-unstyled small">
+                                {% for operation, complexity in structure.time_complexity.items() %}
+                                    <li><strong>{{ operation.title() }}:</strong> {{ complexity }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Space Complexity:</small>
+                            <br>
+                            <span class="badge bg-info">{{ structure.space_complexity }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Use Cases -->
+                    <div class="mb-3">
+                        <small class="text-muted">Use Cases:</small>
+                        <ul class="list-unstyled small">
+                            {% for use_case in structure.use_cases[:3] %}
+                                <li><i class="fas fa-check text-success me-1"></i>{{ use_case }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#implementations-{{ structure.id }}" aria-expanded="false">
+                        <i class="fas fa-code me-1"></i>View Implementations
+                    </button>
+                </div>
+                
+                <!-- Implementations Collapse -->
+                <div class="collapse" id="implementations-{{ structure.id }}">
+                    <div class="card-body pt-0">
+                        <ul class="nav nav-tabs" id="lang-tabs-{{ structure.id }}" role="tablist">
+                            {% for lang, code in structure.implementations.items() %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                            id="{{ lang }}-tab-{{ structure.id }}" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#{{ lang }}-{{ structure.id }}" 
+                                            type="button" role="tab">
+                                        {{ lang.title() }}
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="tab-content" id="lang-content-{{ structure.id }}">
+                            {% for lang, code in structure.implementations.items() %}
+                                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                                     id="{{ lang }}-{{ structure.id }}" role="tabpanel">
+                                    <pre><code class="language-{{ lang }}">{{ code }}</code></pre>
+                                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyCode('{{ lang }}-{{ structure.id }}')">
+                                        <i class="fas fa-copy me-1"></i>Copy Code
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-database fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No data structures found</h4>
+                <p class="text-muted">Check back later for more content!</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterStructures() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    const categoryFilter = document.getElementById('category-filter').value;
+    const cards = document.querySelectorAll('.structure-card');
+    
+    cards.forEach(card => {
+        const name = card.dataset.name;
+        const category = card.dataset.category;
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function copyCode(elementId) {
+    const codeElement = document.querySelector(`#${elementId} code`);
+    const text = codeElement.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Show success message
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+
+// Auto-filter on search input
+document.getElementById('search').addEventListener('input', filterStructures);
+document.getElementById('category-filter').addEventListener('change', filterStructures);
+</script>
+{% endblock %}

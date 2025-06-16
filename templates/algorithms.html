@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Algorithms - Algorithm & Data Structure Reference{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h2">
+            <i class="fas fa-cogs me-2"></i>Algorithms
+        </h1>
+        <p class="text-muted">Comprehensive collection of algorithms with implementations</p>
+    </div>
+</div>
+
+<!-- Filter by Category -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" placeholder="Search algorithms...">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="category-filter" class="form-label">Filter by Category</label>
+                        <select class="form-select" id="category-filter">
+                            <option value="all">All Categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category }}">{{ category }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="filterAlgorithms()">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Algorithms Grid -->
+<div class="row" id="algorithms-container">
+    {% for algorithm in algorithms %}
+        <div class="col-lg-6 mb-4 algorithm-card" data-category="{{ algorithm.category }}" data-name="{{ algorithm.name.lower() }}">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">{{ algorithm.name }}</h5>
+                    <span class="badge bg-success">{{ algorithm.category }}</span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ algorithm.description }}</p>
+                    
+                    <!-- Complexity Information -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Time Complexity:</small>
+                            <ul class="list-unstyled small">
+                                {% for case, complexity in algorithm.time_complexity.items() %}
+                                    <li><strong>{{ case.title() }}:</strong> {{ complexity }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Space Complexity:</small>
+                            <br>
+                            <span class="badge bg-info">{{ algorithm.space_complexity }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Prerequisites -->
+                    {% if algorithm.prerequisites %}
+                    <div class="mb-3">
+                        <small class="text-muted">Prerequisites:</small>
+                        <ul class="list-unstyled small">
+                            {% for prereq in algorithm.prerequisites %}
+                                <li><i class="fas fa-arrow-right text-warning me-1"></i>{{ prereq }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <!-- Use Cases -->
+                    <div class="mb-3">
+                        <small class="text-muted">Use Cases:</small>
+                        <ul class="list-unstyled small">
+                            {% for use_case in algorithm.use_cases[:3] %}
+                                <li><i class="fas fa-check text-success me-1"></i>{{ use_case }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-outline-success btn-sm" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#implementations-{{ algorithm.id }}" aria-expanded="false">
+                        <i class="fas fa-code me-1"></i>View Implementations
+                    </button>
+                </div>
+                
+                <!-- Implementations Collapse -->
+                <div class="collapse" id="implementations-{{ algorithm.id }}">
+                    <div class="card-body pt-0">
+                        <ul class="nav nav-tabs" id="lang-tabs-{{ algorithm.id }}" role="tablist">
+                            {% for lang, code in algorithm.implementations.items() %}
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                            id="{{ lang }}-tab-{{ algorithm.id }}" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#{{ lang }}-{{ algorithm.id }}" 
+                                            type="button" role="tab">
+                                        {{ lang.title() }}
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="tab-content" id="lang-content-{{ algorithm.id }}">
+                            {% for lang, code in algorithm.implementations.items() %}
+                                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                                     id="{{ lang }}-{{ algorithm.id }}" role="tabpanel">
+                                    <pre><code class="language-{{ lang }}">{{ code }}</code></pre>
+                                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="copyCode('{{ lang }}-{{ algorithm.id }}')">
+                                        <i class="fas fa-copy me-1"></i>Copy Code
+                                    </button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-cogs fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No algorithms found</h4>
+                <p class="text-muted">Check back later for more content!</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterAlgorithms() {
+    const searchTerm = document.getElementById('search').value.toLowerCase();
+    const categoryFilter = document.getElementById('category-filter').value;
+    const cards = document.querySelectorAll('.algorithm-card');
+    
+    cards.forEach(card => {
+        const name = card.dataset.name;
+        const category = card.dataset.category;
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Auto-filter on search input
+document.getElementById('search').addEventListener('input', filterAlgorithms);
+document.getElementById('category-filter').addEventListener('change', filterAlgorithms);
+</script>
+{% endblock %}
