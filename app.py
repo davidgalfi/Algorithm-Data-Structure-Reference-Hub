@@ -155,5 +155,123 @@ def algorithms():
                          algorithms=data['algorithms'],
                          categories=data['categories']['algorithms'])
 
+# Enhanced Flask routes with better error handling
+@app.route('/api/search')
+def api_search():
+    """API endpoint for advanced search functionality"""
+    query = request.args.get('q', '').lower()
+    category = request.args.get('category', 'all')
+    
+    try:
+        data = load_data()
+        results = {
+            'data_structures': [],
+            'algorithms': []
+        }
+        
+        # Search data structures
+        for structure in data.get('data_structures', []):
+            if category == 'all' or structure.get('category', '').lower() == category.lower():
+                if (query in structure.get('name', '').lower() or 
+                    query in structure.get('description', '').lower() or
+                    any(query in use_case.lower() for use_case in structure.get('use_cases', []))):
+                    results['data_structures'].append(structure)
+        
+        # Search algorithms
+        for algorithm in data.get('algorithms', []):
+            if category == 'all' or algorithm.get('category', '').lower() == category.lower():
+                if (query in algorithm.get('name', '').lower() or 
+                    query in algorithm.get('description', '').lower() or
+                    any(query in use_case.lower() for use_case in algorithm.get('use_cases', []))):
+                    results['algorithms'].append(algorithm)
+        
+        return jsonify(results)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats')
+def api_stats():
+    """API endpoint for dashboard statistics"""
+    try:
+        data = load_data()
+        
+        stats = {
+            'total_data_structures': len(data.get('data_structures', [])),
+            'total_algorithms': len(data.get('algorithms', [])),
+            'categories': {
+                'data_structures': len(data.get('categories', {}).get('data_structures', [])),
+                'algorithms': len(data.get('categories', {}).get('algorithms', []))
+            },
+            'complexity_distribution': calculate_complexity_distribution(data),
+            'category_distribution': calculate_category_distribution(data)
+        }
+        
+        return jsonify(stats)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def calculate_complexity_distribution(data):
+    """Calculate time complexity distribution"""
+    complexity_count = {}
+    
+    for item in data.get('data_structures', []) + data.get('algorithms', []):
+        time_complexity = item.get('time_complexity', {})
+        if isinstance(time_complexity, dict):
+            for operation, complexity in time_complexity.items():
+                if complexity not in complexity_count:
+                    complexity_count[complexity] = 0
+                complexity_count[complexity] += 1
+        elif isinstance(time_complexity, str):
+            if time_complexity not in complexity_count:
+                complexity_count[time_complexity] = 0
+            complexity_count[time_complexity] += 1
+    
+    return complexity_count
+
+def calculate_category_distribution(data):
+    """Calculate category distribution"""
+    distribution = {
+        'data_structures': {},
+        'algorithms': {}
+    }
+    
+    for structure in data.get('data_structures', []):
+        category = structure.get('category', 'Other')
+        if category not in distribution['data_structures']:
+            distribution['data_structures'][category] = 0
+        distribution['data_structures'][category] += 1
+    
+    for algorithm in data.get('algorithms', []):
+        category = algorithm.get('category', 'Other')
+        if category not in distribution['algorithms']:
+            distribution['algorithms'][category] = 0
+        distribution['algorithms'][category] += 1
+    
+    return distribution
+
+# Add health check endpoint
+@app.route('/health')
+def health_check():
+    """Health check endpoint"""
+    try:
+        # Test database access
+        data = load_data()
+        
+        return jsonify({
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'data_structures_count': len(data.get('data_structures', [])),
+            'algorithms_count': len(data.get('algorithms', []))
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5005)

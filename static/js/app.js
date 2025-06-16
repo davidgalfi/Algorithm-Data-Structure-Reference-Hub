@@ -251,3 +251,247 @@ function addScrollAnimations() {
 
 // Initialize scroll animations
 document.addEventListener('DOMContentLoaded', addScrollAnimations);
+
+// Enhanced copy code functionality
+function copyCode(elementId) {
+    const codeElement = document.querySelector(`#${elementId} code`);
+    if (!codeElement) {
+        console.error('Code element not found:', elementId);
+        return;
+    }
+    
+    const text = codeElement.textContent;
+    
+    // Use modern clipboard API with fallback
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showCopySuccess();
+        }).catch(() => {
+            fallbackCopyText(text);
+        });
+    } else {
+        fallbackCopyText(text);
+    }
+}
+
+function fallbackCopyText(text) {
+    // Fallback for older browsers or non-HTTPS
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        document.execCommand('copy');
+        showCopySuccess();
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showNotification('Copy failed. Please select and copy manually.', 'error');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+function showCopySuccess() {
+    // Create and show success notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success position-fixed';
+    notification.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 250px;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <i class="fas fa-check me-2"></i>Code copied to clipboard!
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Enhanced search functionality with real-time filtering
+function initializeAdvancedSearch() {
+    const searchInput = document.getElementById('search');
+    const categoryFilter = document.getElementById('category-filter');
+    
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch();
+            }, 300);
+        });
+    }
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', performSearch);
+    }
+}
+
+function performSearch() {
+    const searchTerm = document.getElementById('search')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('category-filter')?.value || 'all';
+    
+    // Filter data structures
+    const structureCards = document.querySelectorAll('.structure-card');
+    structureCards.forEach(card => {
+        const name = card.dataset.name || '';
+        const category = card.dataset.category || '';
+        
+        const matchesSearch = name.includes(searchTerm) || 
+                            card.textContent.toLowerCase().includes(searchTerm);
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+            card.classList.add('fade-in');
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Filter algorithms
+    const algorithmCards = document.querySelectorAll('.algorithm-card');
+    algorithmCards.forEach(card => {
+        const name = card.dataset.name || '';
+        const category = card.dataset.category || '';
+        
+        const matchesSearch = name.includes(searchTerm) || 
+                            card.textContent.toLowerCase().includes(searchTerm);
+        const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
+        
+        if (matchesSearch && matchesCategory) {
+            card.style.display = 'block';
+            card.classList.add('fade-in');
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Show/hide no results message
+    updateNoResultsMessage();
+}
+
+function updateNoResultsMessage() {
+    const visibleCards = document.querySelectorAll('.structure-card:not([style*="display: none"]), .algorithm-card:not([style*="display: none"])');
+    const container = document.getElementById('structures-container') || document.getElementById('algorithms-container');
+    
+    if (container && visibleCards.length === 0) {
+        let noResultsMsg = container.querySelector('.no-results-message');
+        if (!noResultsMsg) {
+            noResultsMsg = document.createElement('div');
+            noResultsMsg.className = 'col-12 no-results-message';
+            noResultsMsg.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-search fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No results found</h4>
+                    <p class="text-muted">Try adjusting your search terms or filters</p>
+                </div>
+            `;
+            container.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = 'block';
+    } else {
+        const noResultsMsg = container?.querySelector('.no-results-message');
+        if (noResultsMsg) {
+            noResultsMsg.style.display = 'none';
+        }
+    }
+}
+
+// Keyboard shortcuts
+function initializeKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + K for search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            const searchInput = document.getElementById('search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        }
+        
+        // Escape to clear search
+        if (e.key === 'Escape') {
+            const searchInput = document.getElementById('search');
+            if (searchInput && searchInput === document.activeElement) {
+                searchInput.value = '';
+                performSearch();
+                searchInput.blur();
+            }
+        }
+    });
+}
+
+// Performance monitoring
+function initializePerformanceMonitoring() {
+    // Monitor page load time
+    window.addEventListener('load', function() {
+        const loadTime = performance.now();
+        console.log(`Page loaded in ${loadTime.toFixed(2)}ms`);
+        
+        // Show performance warning if page loads slowly
+        if (loadTime > 3000) {
+            showNotification('Page loaded slowly. Consider clearing your browser cache.', 'warning');
+        }
+    });
+}
+
+// Initialize all enhanced features
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing initialization
+    initializeTheme();
+    addSmoothScrolling();
+    initializeSearch();
+    addLoadingStates();
+    initializeCodeCopy();
+    updateComplexityBadges();
+    addScrollAnimations();
+    
+    // New enhanced features
+    initializeAdvancedSearch();
+    initializeKeyboardShortcuts();
+    initializePerformanceMonitoring();
+    
+    // Add search shortcut hint
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.placeholder += ' (Ctrl+K)';
+    }
+});
+
+// Export functions for global access
+window.DSAApp = {
+    copyCode,
+    showNotification,
+    performSearch,
+    toggleTheme
+};
+
